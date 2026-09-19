@@ -101,6 +101,81 @@ npm --workspace sample-project run test:coverage
 
 `sample-project` intentionally fails some checks. Platform tests should pass.
 
+## Batch Review Workflow
+
+The MVP review API processes one repository per request. A batch can be created safely
+by iterating over approved repository paths and calling the same API for each repository.
+This keeps repository validation, deterministic tooling, policy evaluation, and audit
+traces identical for single and batch reviews.
+
+Example PowerShell batch run against a locally running API:
+
+```powershell
+$repositories = @(
+  "./sample-project",
+  "C:/work/orders-service",
+  "C:/work/catalog-service"
+)
+
+foreach ($repository in $repositories) {
+  $payload = @{ repositoryPath = $repository } | ConvertTo-Json
+  $result = Invoke-RestMethod `
+    -Method Post `
+    -Uri "http://localhost:3001/api/reviews" `
+    -ContentType "application/json" `
+    -Body $payload
+
+  [pscustomobject]@{
+    Repository = $result.repository
+    ReviewId = $result.id
+    Decision = $result.decision
+    Findings = $result.findings.Count
+  }
+}
+```
+
+Only repositories allowed by the backend's configured workspace boundary can be
+reviewed. For a larger deployment, this loop should become a queue worker with
+concurrency limits, persistent review storage, retry/backoff, and per-repository
+policy profiles. The current in-memory API is intentionally sized for a live demo.
+
+## CI/CD Automation
+
+The repository includes a GitHub Actions workflow at
+`.github/workflows/ci.yml`. It validates the platform on pushes and pull requests:
+
+1. Install dependencies with `npm ci`.
+2. Build shared packages, agents, API, and web assets.
+3. Run platform unit tests.
+4. Run platform lint checks.
+5. Run the sample project's deterministic quality command as an informational demo step.
+
+The platform validation job is the release gate. The sample-project quality step is
+allowed to report the intentional defects documented in
+`sample-project/GROUND_TRUTH.md`; those defects demonstrate how the product surfaces
+real failures and must not make the platform's own CI red.
+
+Recommended enterprise pipeline stages:
+
+```text
+Pull request
+    -> build and platform tests
+    -> deterministic repository checks
+    -> agentic review with bounded context
+    -> aggregate findings and apply policy
+    -> publish checks and human-review findings
+    -> merge only after required gates pass
+    -> deploy after environment approval
+```
+
+For CI integration, set `GEMINI_API_KEY` as an encrypted repository or organization
+secret and keep `ENABLE_LLM_REVIEW=true` only in environments where source-code
+processing is approved. If the model is unavailable, the backend uses its evidence-
+based fallback; deterministic checks remain authoritative. A production integration
+should add a webhook or queue endpoint, persistent review records, PR annotations,
+timeouts, retry policy, and a concurrency budget before enabling reviews across many
+repositories.
+
 ## Quality Check Model
 
 Every deterministic check is normalized as:
