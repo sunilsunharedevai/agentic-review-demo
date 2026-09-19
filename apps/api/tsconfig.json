@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "declaration": false,
+    "composite": false
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../../packages/shared" }, { "path": "../../packages/agents" }]
+}

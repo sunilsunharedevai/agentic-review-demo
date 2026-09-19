@@ -1,0 +1,17 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+.DS_Store
+apps/web/.vite
+apps/web/dist
+apps/api/dist
+packages/*/dist
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+sample-project/dist
+sample-project/coverage
