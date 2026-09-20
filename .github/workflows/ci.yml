@@ -58,5 +58,8 @@ jobs:
       - name: Install sample project dependencies
         run: npm run demo:sample:install
 
+      - name: Build agent tooling
+        run: npm run build:agents
+
       - name: Execute intentional sample quality checks
         run: npm run demo:quality
